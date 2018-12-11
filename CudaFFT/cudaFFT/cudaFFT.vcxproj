@@ -79,8 +79,8 @@
     <LibraryPath>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0\lib\x64;C:\Users\Phuong-M4700\Documents\GitHub\Peter\CudaFFT\WpdPack\Lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\Users\Phuong-M4700\Documents\GitHub\Peter\CudaFFT\WpdPack\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\Phuong-M4700\Documents\GitHub\Peter\CudaFFT\WpdPack\Lib\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\Phuong\Documents\GitHub\LT_cuda_fft\WpdPack\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Phuong\Documents\GitHub\LT_cuda_fft\WpdPack\Lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
