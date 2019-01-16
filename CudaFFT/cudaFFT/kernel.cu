@@ -400,10 +400,11 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
 				outputFrame[i + FRAME_LEN + FRAME_HEADER_SIZE] = u_char(indexMaxFFT*16.0 / (mFFTSize));
 			}
 			sendto(mSocket, (char*)outputFrame, OUTPUT_FRAME_SIZE, 0, (struct sockaddr *) &si_peter, sizeof(si_peter));
+			//jump to next period
+			iProcessing++;
+			if (iProcessing >= MAX_IREC)iProcessing = 0;
 		}
-		//jump to next period
-		iProcessing++;
-		if (iProcessing >= MAX_IREC)iProcessing = 0;
+		
 
 
 	}
@@ -430,10 +431,10 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
 	//    localtime_s(&ltime, &local_tv_sec);
 	//    strftime( timestr, sizeof timestr, "%H:%M:%S", &ltime);
 
-	if (pkt_header->len<200)return;
-	int port = ((*(pkt_data + 36) << 8) | (*(pkt_data + 37)));
-	if (port == 5000)
-	{
+	if (pkt_header->len<1000)return;
+	//int port = ((*(pkt_data + 36) << 8) | (*(pkt_data + 37)));
+	//if (port == 5000)
+	//{
 		/*
 		+ 0: 1024 byte đầu kênh I
 		+ 1: 1024 byte sau kênh I
@@ -448,7 +449,7 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
 		u_char* data = (u_char*)pkt_data + UDP_HEADER_LEN;
 		ProcessFrame(data, pkt_header->len);
 
-	}
+	//}
 
 
 }
