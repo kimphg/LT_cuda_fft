@@ -431,9 +431,9 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
 	//    strftime( timestr, sizeof timestr, "%H:%M:%S", &ltime);
 
 	if (pkt_header->len<1000)return;
-	//int port = ((*(pkt_data + 36) << 8) | (*(pkt_data + 37)));
-	//if (port == 5000)
-	//{
+	int port = ((*(pkt_data + 36) << 8) | (*(pkt_data + 37)));
+	if (port == 5000)
+	{
 		/*
 		+ 0: 1024 byte đầu kênh I
 		+ 1: 1024 byte sau kênh I
@@ -448,7 +448,7 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
 		u_char* data = (u_char*)pkt_data + UDP_HEADER_LEN;
 		ProcessFrame(data, pkt_header->len);
 
-	//}
+	}
 
 
 }
@@ -604,6 +604,11 @@ void ProcessFrame(unsigned char*data, int len)
 	int newfftID = data[22];
 	if(fftID!=newfftID)
 	{
+		if (newfftID > 8 || newfftID < 0)
+		{
+			printf("\nWrong fftID");
+			return;
+		}
 		fftID = newfftID;
 		mFFTSize = pow(2.0, fftID + 2);
 		if (mFFTSize > 512 || mFFTSize < 4)mFFTSize = 32;
