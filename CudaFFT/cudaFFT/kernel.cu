@@ -361,10 +361,9 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
 				if (iProcessing >= MAX_IREC)iProcessing = 0;
 				continue;
 			}
-			int ia;
 			for (int ir = 0; ir < FRAME_LEN; ir++)
 			{
-				ia = iProcessing;
+				int ia = iProcessing;
 				for (int i = 0; i < mFFTSize; i++)
 				{
 					ramSignalTL[ir*mFFTSize + i] = ramSignalNen[ia][ir];
