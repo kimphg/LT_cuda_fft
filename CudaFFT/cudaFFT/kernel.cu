@@ -431,8 +431,14 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
 	//    strftime( timestr, sizeof timestr, "%H:%M:%S", &ltime);
 
 	if (pkt_header->len<1000)return;
-	int port = ((*(pkt_data + 36) << 8) | (*(pkt_data + 37)));
-	if (port == 5000)
+	//int port = ((*(pkt_data + 36) << 8) | (*(pkt_data + 37)));
+
+	if (
+		((*(pkt_data + 6)) == 0) &&
+		((*(pkt_data + 7)) == 0x12) &&
+		((*(pkt_data + 8)) == 0x34)
+
+		)
 	{
 		/*
 		+ 0: 1024 byte đầu kênh I
@@ -449,6 +455,7 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
 		ProcessFrame(data, pkt_header->len);
 
 	}
+
 
 
 }
@@ -613,14 +620,21 @@ void ProcessFrame(unsigned char*data, int len)
 		mFFTSize = pow(2.0, fftID + 2);
 		if (mFFTSize > 512 || mFFTSize < 4)mFFTSize = 32;
 		isPaused = true;
-		Sleep(20);
-		//if (mFFT)delete mFFT;
+		
+		Sleep(200);
+		iProcessing = iReady;
+		if (mFFT)
+		{
+			delete mFFT;
+		}
 		mFFT = new coreFFT(FRAME_LEN, mFFTSize);
-		Sleep(5);
+		
+		Sleep(50);
 		isPaused = false;
 	}
 	memcpy(dataBuff[iNext].header, data, FRAME_HEADER_SIZE);
-	
+
+	//printf("data[0]=%d\n", data[0]);
 	bool isLastFrame = false;
 	if (data[0] == 0)		//0: 1024 byte đầu kênh I
 	{
@@ -648,6 +662,7 @@ void ProcessFrame(unsigned char*data, int len)
 	{
 		
 		sendto(mSocket, (char*)data, len, 0, (struct sockaddr *) &si_peter, sizeof(si_peter));
+		
 		//isLastFrame = true;
 
 	}
@@ -658,13 +673,13 @@ void ProcessFrame(unsigned char*data, int len)
 		dataBuff[iNext].dataLen = 512;
 		isLastFrame = true;
 	}
-	else if (data[0] == 6) //6: 1024 byte sau kênh I tín hiệu xung đơn 
+	else if (data[0] == 6) //6: 1024 byte kênh I tín hiệu xung đơn 
 	{
 		memcpy(dataBuff[iNext].dataPM_I, data + FRAME_HEADER_SIZE, 1024);
 		dataBuff[iNext].dataLen = 1024;
 
 	}
-	else if (data[0] == 7) //7: 1024 byte sau kênh Q tín hiệu xung đơn 
+	else if (data[0] == 7) //7: 1024 byte kênh Q tín hiệu xung đơn 
 	{
 		memcpy(dataBuff[iNext].dataPM_Q, data + FRAME_HEADER_SIZE, 1024);
 		dataBuff[iNext].dataLen = 1024;
