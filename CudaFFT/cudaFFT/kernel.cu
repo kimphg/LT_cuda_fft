@@ -320,13 +320,17 @@ long int nFrames = 0;
 char recvDatagram[1000];
 DWORD WINAPI ProcessCommandBuffer(LPVOID lpParam)
 {
-	while (false)
+	unsigned char watchDog[] = { 0xAA, 0xAA, 0xAA, 0xAA, 0xAA };
+	while (true)
 	{
-		int PeterAddrSize = sizeof (si_peter);
+		Sleep(1000);
+		sendto(mSocket, (char*)watchDog, 4, 0, (struct sockaddr *) &si_peter, sizeof(si_peter));
+		
+		/*int PeterAddrSize = sizeof (si_peter);
 		int iResult = recvfrom(mSocket, recvDatagram, 1000, 0, (struct sockaddr *) &si_peter, &PeterAddrSize);
 		if (iResult == SOCKET_ERROR) {
-			wprintf(L"recvfrom failed with error %d\n", WSAGetLastError());
-		}
+			//wprintf(L"recvfrom failed with error %d\n", WSAGetLastError());
+		}*/
 	}
 	return 0;
 }
@@ -346,7 +350,8 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
 		{
 
 
-			for (int ir = 0; ir < FRAME_LEN; ir++)
+			int dataLen = dataBuff[iProcessing].dataLen;
+			for (int ir = 0; ir < dataLen; ir++)
 			{
 
 				//ramSignalNen[iProcessing][ir].x = sqrt(double(dataBuff[iProcessing].dataPM_I[ir] * dataBuff[iProcessing].dataPM_I[ir] + dataBuff[iProcessing].dataPM_Q[ir] * dataBuff[iProcessing].dataPM_Q[ir]));//int(dataBuff[iProcessing].dataPM_I[ir]);
@@ -361,7 +366,7 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
 				if (iProcessing >= MAX_IREC)iProcessing = 0;
 				continue;
 			}
-			for (int ir = 0; ir < FRAME_LEN; ir++)
+			for (int ir = 0; ir < dataLen; ir++)
 			{
 				int ia = iProcessing;
 				for (int i = 0; i < mFFTSize; i++)
@@ -378,7 +383,7 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
 
 			memcpy(outputFrame, dataBuff[iProcessing].header, FRAME_HEADER_SIZE);
 
-			for (int i = 0; i < FRAME_LEN; i++)
+			for (int i = 0; i < dataLen; i++)
 			{
 				float maxAmp = 0;
 				int indexMaxFFT = 0;
@@ -397,6 +402,11 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
 				if (res > 255)res = 255;
 				outputFrame[i + FRAME_HEADER_SIZE] = res;// u_char(sqrt(float(maxAmp)) / float(FFT_SIZE_MAX));
 				outputFrame[i + FRAME_LEN + FRAME_HEADER_SIZE] = u_char(indexMaxFFT*16.0 / (mFFTSize));
+			}
+			for (int i = dataLen; i < FRAME_LEN; i++)
+			{
+				outputFrame[i + FRAME_HEADER_SIZE] = 0;
+				outputFrame[i + FRAME_LEN + FRAME_HEADER_SIZE] = 0;
 			}
 			sendto(mSocket, (char*)outputFrame, OUTPUT_FRAME_SIZE, 0, (struct sockaddr *) &si_peter, sizeof(si_peter));
 			//jump to next period
