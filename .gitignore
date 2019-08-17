@@ -36,3 +36,7 @@
 *.sdf
 *.opensdf
 *.sdf
+*.sdf
+*.suo
+CudaFFT/cudaFFT.sdf
+CudaFFT/cudaFFT.v12.suo

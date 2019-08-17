@@ -57,6 +57,7 @@ public:
 	int mFrameLen;
 	coreFFT(int frameLen, int ntichluy)
 	{
+		isActive = false;
 		cudaError_t cudaStatus;
 
 		// Choose which GPU to run on, change this on a multi-GPU system.
@@ -84,7 +85,7 @@ public:
 		ramSignalTL = new cufftComplex[FRAME_LEN*mTichLuySize];
 		// Allocate device memory for signal tich luy
 		cudaMalloc((void **)&dSignalTL, mMemSizeTL);
-		
+		isActive = true;
 	}
 	void exeFFTTL(cufftComplex *h_signal)
 	{
@@ -249,21 +250,17 @@ void ReplayData(const char* fileName)
 	printf("\ntotal data sent:%d", dataSize);
 }
 
-int main(int argc, char **argv)
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+	PSTR szCmdParam, int iCmdShow)
 {
 
 	/* start the capture */
-	socketInit();
 	mFFT = new coreFFT(FRAME_LEN, mFFTSize);
+	socketInit();
 	StartProcessing();
-	if (argc > 1)
-	{
-		char *fileName = argv[0];
-		printf("\nreplay data file:");
-		printf(fileName);
-		ReplayData(fileName);
-	}
-	else pcapRun();
+	pcapRun();
+	printf("\nNo interface available");
+	getch();
 
 	return 0;
 }
@@ -276,7 +273,7 @@ void pcapRun()
 {
 	pcap_if_t *alldevs;
 	pcap_if_t *d;
-	pcap_t *adhandle;
+	pcap_t		*adhandle;
 	char errbuf[PCAP_ERRBUF_SIZE];
 	//
 	/* Retrieve the device list on the local machine */
@@ -382,25 +379,25 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
 			//dataBuff[iProcessing].header[33] = gyroValue;
 
 			memcpy(outputFrame, dataBuff[iProcessing].header, FRAME_HEADER_SIZE);
-
+			int fftSkip = BANG_KHONG*mFFTSize / 16;
 			for (int i = 0; i < dataLen; i++)
 			{
-				float maxAmp = 0;
+				double maxAmp = 0;
 				int indexMaxFFT = 0;
 				//for (int j = 0; j<FFT_SIZE_MAX; j++)
-				int fftSkip = BANG_KHONG*mFFTSize / 16;
+				
 				for (int j = fftSkip; j < mFFTSize - fftSkip; j++)
 				{
-					float ampl = (ramSignalTL[i*mFFTSize + j].x * ramSignalTL[i*mFFTSize + j].x) + (ramSignalTL[i*mFFTSize + j].y * ramSignalTL[i*mFFTSize + j].y);
+					double ampl = (ramSignalTL[i*mFFTSize + j].x * ramSignalTL[i*mFFTSize + j].x) + (ramSignalTL[i*mFFTSize + j].y * ramSignalTL[i*mFFTSize + j].y);
 					if (ampl>maxAmp)
 					{
 						maxAmp = ampl;
 						indexMaxFFT = j;
 					}
 				}
-				float res = sqrt(double(maxAmp) / double(mFFTSize));
+				double res = sqrt(double(maxAmp) / double(mFFTSize));
 				if (res > 255)res = 255;
-				outputFrame[i + FRAME_HEADER_SIZE] = res;// u_char(sqrt(float(maxAmp)) / float(FFT_SIZE_MAX));
+				outputFrame[i + FRAME_HEADER_SIZE] = u_char(res);// u_char(sqrt(float(maxAmp)) / float(FFT_SIZE_MAX));
 				outputFrame[i + FRAME_LEN + FRAME_HEADER_SIZE] = u_char(indexMaxFFT*16.0 / (mFFTSize));
 			}
 			for (int i = dataLen; i < FRAME_LEN; i++)
