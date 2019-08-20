@@ -249,9 +249,16 @@ void ReplayData(const char* fileName)
 	}
 	printf("\ntotal data sent:%d", dataSize);
 }
+void HideConsole()
+{
+	::ShowWindow(::GetConsoleWindow(), SW_HIDE);
+}
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
-	PSTR szCmdParam, int iCmdShow)
+void ShowConsole()
+{
+	::ShowWindow(::GetConsoleWindow(), SW_SHOW);
+}
+int main(int argc, char** argv)
 {
 
 	/* start the capture */
@@ -308,6 +315,7 @@ void pcapRun()
 		return;
 	}
 	printf("\nlistening on %s...\n", d->description);
+	HideConsole();
 	pcap_loop(adhandle, 0, packet_handler, NULL);
 }
 u_char dataOut[FRAME_LEN];
