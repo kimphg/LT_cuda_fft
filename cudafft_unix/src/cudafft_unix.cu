@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
-#include "udpclient.h"
 #define HAVE_REMOTE// for pcap
 #include <pcap.h> /* if this gives you an error try pcap/pcap.h */
 #define HR2D_PK//
@@ -25,7 +24,7 @@ bool isPaused = false;
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include "udpclient.h"
 // includes, project
 #include <cuda_runtime.h>
 #include <cufft.h>
