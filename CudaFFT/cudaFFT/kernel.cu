@@ -7,6 +7,7 @@
 #include <windows.h>
 #include <conio.h>
 #include <tchar.h>
+#include <string>
 #define HAVE_REMOTE// for pcap
 #include "pcap.h"
 #define HR2D_PK//
@@ -299,8 +300,15 @@ void pcapRun()
 			printf(" (%s)", d->description);
 		else
 			printf(" (No description available)");
+		std::string des(d->description);
+		if (des.find(std::string("Ethernet")) != std::string::npos)
+		{
+			printf(" (Start listening)");
+			break;
+		}
+
 	}
-	d = alldevs;
+	//d = alldevs;
 	if ((adhandle = pcap_open(d->name,          // name of the device
 		65536,            // portion of the packet to capture
 		// 65536 guarantees that the whole packet will be captured on all the link layers
@@ -308,7 +316,7 @@ void pcapRun()
 		1000,             // read timeout
 		NULL,             // authentication on the remote machine
 		errbuf            // error buffer
-		)) == NULL)
+	)) == NULL)
 	{
 		/* Free the device list */
 		pcap_freealldevs(alldevs);
@@ -330,7 +338,7 @@ DWORD WINAPI ProcessCommandBuffer(LPVOID lpParam)
 	{
 		Sleep(1000);
 		sendto(mSocket, (char*)watchDog, 4, 0, (struct sockaddr *) &si_peter, sizeof(si_peter));
-		
+
 		/*int PeterAddrSize = sizeof (si_peter);
 		int iResult = recvfrom(mSocket, recvDatagram, 1000, 0, (struct sockaddr *) &si_peter, &PeterAddrSize);
 		if (iResult == SOCKET_ERROR) {
@@ -387,17 +395,17 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
 			//dataBuff[iProcessing].header[33] = gyroValue;
 
 			memcpy(outputFrame, dataBuff[iProcessing].header, FRAME_HEADER_SIZE);
-			int fftSkip = BANG_KHONG*mFFTSize / 16;
+			int fftSkip = BANG_KHONG * mFFTSize / 16;
 			for (int i = 0; i < dataLen; i++)
 			{
 				double maxAmp = 0;
 				int indexMaxFFT = 0;
 				//for (int j = 0; j<FFT_SIZE_MAX; j++)
-				
+
 				for (int j = fftSkip; j < mFFTSize - fftSkip; j++)
 				{
 					double ampl = (ramSignalTL[i*mFFTSize + j].x * ramSignalTL[i*mFFTSize + j].x) + (ramSignalTL[i*mFFTSize + j].y * ramSignalTL[i*mFFTSize + j].y);
-					if (ampl>maxAmp)
+					if (ampl > maxAmp)
 					{
 						maxAmp = ampl;
 						indexMaxFFT = j;
@@ -418,7 +426,7 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
 			iProcessing++;
 			if (iProcessing >= MAX_IREC)iProcessing = 0;
 		}
-		
+
 
 
 	}
@@ -445,7 +453,7 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
 	//    localtime_s(&ltime, &local_tv_sec);
 	//    strftime( timestr, sizeof timestr, "%H:%M:%S", &ltime);
 
-	if (pkt_header->len<1000)return;
+	if (pkt_header->len < 1000)return;
 	//int port = ((*(pkt_data + 36) << 8) | (*(pkt_data + 37)));
 
 	if (
@@ -624,7 +632,7 @@ void ProcessFrame(unsigned char*data, int len)
 	int iNext = iReady + 1;
 	if (iNext >= MAX_IREC)iNext = 0;
 	int newfftID = data[22];
-	if(fftID!=newfftID)
+	if (fftID != newfftID)
 	{
 		if (newfftID > 8 || newfftID < 0)
 		{
@@ -635,7 +643,7 @@ void ProcessFrame(unsigned char*data, int len)
 		mFFTSize = pow(2.0, fftID + 2);
 		if (mFFTSize > 512 || mFFTSize < 4)mFFTSize = 32;
 		isPaused = true;
-		
+
 		Sleep(200);
 		iProcessing = iReady;
 		if (mFFT)
@@ -643,7 +651,7 @@ void ProcessFrame(unsigned char*data, int len)
 			delete mFFT;
 		}
 		mFFT = new coreFFT(FRAME_LEN, mFFTSize);
-		
+
 		Sleep(50);
 		isPaused = false;
 	}
@@ -675,9 +683,9 @@ void ProcessFrame(unsigned char*data, int len)
 	}
 	else if (data[0] == 4) //4: máy hỏi
 	{
-		
+
 		sendto(mSocket, (char*)data, len, 0, (struct sockaddr *) &si_peter, sizeof(si_peter));
-		
+
 		//isLastFrame = true;
 
 	}
