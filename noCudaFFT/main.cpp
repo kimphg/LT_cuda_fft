@@ -16,7 +16,7 @@
 #define OUTPUT_FRAME_SIZE FRAME_LEN*2+FRAME_HEADER_SIZE
 #define FFT_SIZE_MAX 256
 #define BANG_KHONG 0
-int mFFTSize = 32;
+int mFFTSize = 8;
 int mFFTDegree = 5;
 #define FFT_STEP (mFFTSize / 4)
 
