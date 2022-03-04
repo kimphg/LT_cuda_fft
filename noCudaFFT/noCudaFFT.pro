@@ -23,3 +23,5 @@ LIBS += "-L$$PWD/WpdPack/Lib/x64" -lpacket -lwpcap
 # In order to do so, uncomment the following line.
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
+INCLUDEPATH += "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/ucrt"
+LIBS += -L"C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17134.0/ucrt/x64"

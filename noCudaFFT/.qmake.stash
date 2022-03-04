@@ -1,0 +1,14 @@
+QMAKE_DEFAULT_INCDIRS = \
+    "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\INCLUDE" \
+    "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\ATLMFC\\INCLUDE" \
+    "C:\\Program Files (x86)\\Windows Kits\\8.1\\include\\shared" \
+    "C:\\Program Files (x86)\\Windows Kits\\8.1\\include\\um" \
+    "C:\\Program Files (x86)\\Windows Kits\\8.1\\include\\winrt" \
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Tools\\MSVC\\14.16.27023\\include" \
+    "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.19041.0\\ucrt" \
+    "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.19041.0\\um" \
+    "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.19041.0\\shared"
+QMAKE_DEFAULT_LIBDIRS = \
+    "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\LIB\\amd64" \
+    "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\ATLMFC\\LIB\\amd64" \
+    "C:\\Program Files (x86)\\Windows Kits\\8.1\\lib\\winv6.3\\um\\x64"

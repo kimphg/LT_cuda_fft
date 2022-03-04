@@ -3,6 +3,7 @@
 //#include "device_launch_parameters.h"
 //#include <opencv2/opencv.hpp>
 //#include <stdafx.h>
+#include <string>
 #include <stdio.h>
 #include <winsock2.h>
 #include <windows.h>
@@ -172,6 +173,7 @@ void socketInit()
     memset((char *)&si_peter, 0, sizeof(si_peter));
     si_peter.sin_family = AF_INET;
     si_peter.sin_port = htons(31000);//port "127.0.0.1"
+    printf("Output port 31000");
     si_peter.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
 
 }
@@ -187,19 +189,19 @@ DWORD WINAPI ProcessCommandBuffer(LPVOID lpParam);
 void StartProcessing()
 {
     CreateThread(
-        NULL,                   // default security attributes
-        0,                      // use default stack size
-        ProcessDataBuffer,       // thread function name
-        NULL,          // argument to thread function
-        0,                      // use default creation flags
-        NULL);   // returns the thread identifier
+                NULL,                   // default security attributes
+                0,                      // use default stack size
+                ProcessDataBuffer,       // thread function name
+                NULL,          // argument to thread function
+                0,                      // use default creation flags
+                NULL);   // returns the thread identifier
     CreateThread(
-        NULL,                   // default security attributes
-        0,                      // use default stack size
-        ProcessCommandBuffer,       // thread function name
-        NULL,          // argument to thread function
-        0,                      // use default creation flags
-        NULL);   // returns the thread identifier
+                NULL,                   // default security attributes
+                0,                      // use default stack size
+                ProcessCommandBuffer,       // thread function name
+                NULL,          // argument to thread function
+                0,                      // use default creation flags
+                NULL);   // returns the thread identifier
 
 }
 FILE* pFile;
@@ -287,22 +289,36 @@ void pcapRun()
             printf(" (%s)", d->description);
         else
             printf(" (No description available)");
+        std::string des(d->description);
+        if (des.find(std::string("Ethernet")) != std::string::npos)
+        {
+            printf(" (Start listening)");
+            break;
+        }
     }
     d = alldevs;
     if ((adhandle = pcap_open(d->name,          // name of the device
-        65536,            // portion of the packet to capture
-        // 65536 guarantees that the whole packet will be captured on all the link layers
-        PCAP_OPENFLAG_PROMISCUOUS,    // promiscuous mode
-        1000,             // read timeout
-        NULL,             // authentication on the remote machine
-        errbuf            // error buffer
-        )) == NULL)
+                              65536,            // portion of the packet to capture
+                              // 65536 guarantees that the whole packet will be captured on all the link layers
+                              PCAP_OPENFLAG_PROMISCUOUS,    // promiscuous mode
+                              1000,             // read timeout
+                              NULL,             // authentication on the remote machine
+                              errbuf            // error buffer
+                              )) == NULL)
     {
         /* Free the device list */
         pcap_freealldevs(alldevs);
         return;
     }
-    printf("\nlistening on %s...\n", d->description);
+    printf("\nnocudaFFT listening on %s...\n", d->description);
+    printf("FFT size = %d",mFFTSize);
+    Sleep(1000);
+    printf("\nAuto close in 3s");
+    Sleep(1000);
+    printf("\nAuto close in 2s");
+    Sleep(1000);
+    printf("\nAuto close in 1s");
+    Sleep(1000);
     HideConsole();
     pcap_loop(adhandle, 0, packet_handler, NULL);
 }
@@ -370,6 +386,7 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
                     if (ia < 0)ia += MAX_IREC;
                 }
                 FFT(&rawSignalFFTx[ir*mFFTSize], &rawSignalFFTy[ir*mFFTSize]);
+                //                printf("iProcessing = %d \n", iProcessing);
             }
             // perform fft
 
@@ -442,11 +459,11 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
     //int port = ((*(pkt_data + 36) << 8) | (*(pkt_data + 37)));
 
     if (
-        ((*(pkt_data + 6)) == 0) &&
-        ((*(pkt_data + 7)) == 0x12) &&
-        ((*(pkt_data + 8)) == 0x34)
+            ((*(pkt_data + 6)) == 0) &&
+            ((*(pkt_data + 7)) == 0x12) &&
+            ((*(pkt_data + 8)) == 0x34)
 
-        )
+            )
     {
         /*
         + 0: 1024 byte đầu kênh I
