@@ -40,3 +40,5 @@
 *.suo
 CudaFFT/cudaFFT.sdf
 CudaFFT/cudaFFT.v12.suo
+*.Debug
+*.Release
