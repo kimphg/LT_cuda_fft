@@ -138,6 +138,7 @@ void pcapRun();
 
 int mSocket;
 struct sockaddr_in si_peter;
+struct sockaddr_in si_cabin;
 struct sockaddr_in si_capin;
 void socketInit()
 {
@@ -175,6 +176,18 @@ void socketInit()
     si_peter.sin_port = htons(31000);//port "127.0.0.1"
     printf("Output port 31000");
     si_peter.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
+    if (ret == -1)
+    {
+        printf("Port busy");
+        Sleep(3000);
+        exit(EXIT_FAILURE);
+    }
+    //forwarding socket
+    memset((char *)&si_cabin, 0, sizeof(si_cabin));
+    si_cabin.sin_family = AF_INET;
+    si_cabin.sin_port = htons(1989);//port "127.0.0.1"
+    si_cabin.sin_addr.S_un.S_addr = inet_addr("192.168.1.40");
+//    int ret = bind(mSocket, (struct sockaddr *)&si_capin, sizeof(struct sockaddr));
 
 }
 void socketDelete()
@@ -319,7 +332,7 @@ void pcapRun()
     Sleep(1000);
     printf("\nAuto close in 1s");
     Sleep(1000);
-    HideConsole();
+//    HideConsole();
     pcap_loop(adhandle, 0, packet_handler, NULL);
 }
 u_char dataOut[FRAME_LEN];
@@ -350,8 +363,6 @@ int datatestA[MAX_IREC];*/
 
 DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
 {
-
-
     while (true)
     {
         Sleep(1);
@@ -362,10 +373,11 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
             int dataLen = dataBuff[iProcessing].dataLen;
             for (int ir = 0; ir < dataLen; ir++)
             {
-
+                float a= (dataBuff[iProcessing].dataPM_I[ir]);
+                float b= (dataBuff[iProcessing].dataPM_Q[ir]);
                 //ramSignalNen[iProcessing][ir].x = sqrt(double(dataBuff[iProcessing].dataPM_I[ir] * dataBuff[iProcessing].dataPM_I[ir] + dataBuff[iProcessing].dataPM_Q[ir] * dataBuff[iProcessing].dataPM_Q[ir]));//int(dataBuff[iProcessing].dataPM_I[ir]);
-                rawSignalx[iProcessing][ir] = (dataBuff[iProcessing].dataPM_I[ir]);
-                rawSignaly[iProcessing][ir] = (dataBuff[iProcessing].dataPM_Q[ir]);
+                rawSignalx[iProcessing][ir] = sqrt(a*a+b*b);
+                rawSignaly[iProcessing][ir] = 0;
                 //ramSignalNen[iProcessing][ir].y = 0;
             }
             if (!dataBuff[iProcessing].isToFFT || isPaused)
@@ -375,9 +387,11 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
                 if (iProcessing >= MAX_IREC)iProcessing = 0;
                 continue;
             }
-            for (int ir = 0; ir < dataLen; ir++)
+            for (
+                 int ir = 0; ir < dataLen; ir++)
             {
                 int ia = iProcessing;
+
                 for (int i = 0; i < mFFTSize; i++)
                 {
                     rawSignalFFTx[ir*mFFTSize + i] = rawSignalx[ia][ir];
@@ -385,15 +399,7 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
                     ia--;
                     if (ia < 0)ia += MAX_IREC;
                 }
-                FFT(&rawSignalFFTx[ir*mFFTSize], &rawSignalFFTy[ir*mFFTSize]);
-                //                printf("iProcessing = %d \n", iProcessing);
             }
-            // perform fft
-
-            //if (mFFT->isActive)mFFT->exeFFTTL((cufftComplex*)ramSignalTL);
-            //dataBuff[iProcessing].header[32] = gyroValue >> 8;
-            //dataBuff[iProcessing].header[33] = gyroValue;
-
             //generate output data frame
             memcpy(outputFrame, dataBuff[iProcessing].header, FRAME_HEADER_SIZE);
             int fftSkip = BANG_KHONG*mFFTSize / 16;
@@ -401,8 +407,6 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
             {
                 double maxAmp = 0;
                 int indexMaxFFT = 0;
-                //for (int j = 0; j<FFT_SIZE_MAX; j++)
-
                 for (int j = fftSkip; j < mFFTSize - fftSkip; j++)
                 {
                     int pt = i*mFFTSize + j;
@@ -456,8 +460,8 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
     //    strftime( timestr, sizeof timestr, "%H:%M:%S", &ltime);
 
     if (pkt_header->len<1000)return;
-    //int port = ((*(pkt_data + 36) << 8) | (*(pkt_data + 37)));
-
+    int port = ((*(pkt_data + 36) << 8) | (*(pkt_data + 37)));
+    if(port!=1989)sendto(mSocket, (char*)pkt_data, pkt_header->len, 0, (struct sockaddr *) &si_cabin, sizeof(si_cabin));
     if (
             ((*(pkt_data + 6)) == 0) &&
             ((*(pkt_data + 7)) == 0x12) &&
@@ -652,9 +656,11 @@ void ProcessFrame(unsigned char*data, int len)
             printf("\nWrong fftID");
             return;
         }
+
         fftID = newfftID;
         mFFTDegree = fftID + 2;
         mFFTSize = pow(2.0, mFFTDegree);
+        printf("FFT size = %d",mFFTSize);
         if (mFFTSize > 512 || mFFTSize < 4)mFFTSize = 32;
         isPaused = true;
 
