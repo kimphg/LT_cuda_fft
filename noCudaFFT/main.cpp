@@ -200,7 +200,8 @@ int main(int argc, char** argv)
 {
 
     /* start the capture */
-
+    fftwf_init_threads();
+    fftwf_plan_with_nthreads(8);
     socketInit();
     StartProcessing();
     pcapRun();
