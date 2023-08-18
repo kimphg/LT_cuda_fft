@@ -19,7 +19,7 @@ CXXFLAGS      = -nologo -Zc:wchar_t -FS -Zc:rvalueCast -Zc:inline -Zc:strictStri
 INCPATH       = -I..\noCudaFFT -I. -I..\noCudaFFT\WpdPack\Include -I..\noCudaFFT\fftw\include -I"C:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/ucrt" -IC:\Qt\Qt5.14.2\5.14.2\msvc2015_64\include -IC:\Qt\Qt5.14.2\5.14.2\msvc2015_64\include\QtCore -Irelease -IC:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\win32-msvc 
 LINKER        = link
 LFLAGS        = /NOLOGO /DYNAMICBASE /NXCOMPAT /OPT:REF /INCREMENTAL:NO /SUBSYSTEM:CONSOLE "/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'"
-LIBS          = /LIBPATH:C:\Users\Phuong\Documents\GitHub\LT_cuda_fft\noCudaFFT\WpdPack\Lib\x64 C:\Users\Phuong\Documents\GitHub\LT_cuda_fft\noCudaFFT\WpdPack\Lib\x64\packet.lib C:\Users\Phuong\Documents\GitHub\LT_cuda_fft\noCudaFFT\WpdPack\Lib\x64\wpcap.lib /LIBPATH:"C:\Program Files (x86)\Windows Kits\10\Lib\10.0.17134.0\ucrt\x64" C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\lib\Qt5Core.lib   
+LIBS          = /LIBPATH:C:\Users\Phuong\Documents\GitHub\LT_cuda_fft\noCudaFFT\WpdPack\Lib\x64 C:\Users\Phuong\Documents\GitHub\LT_cuda_fft\noCudaFFT\WpdPack\Lib\x64\packet.lib C:\Users\Phuong\Documents\GitHub\LT_cuda_fft\noCudaFFT\WpdPack\Lib\x64\wpcap.lib /LIBPATH:C:\Users\Phuong\Documents\GitHub\LT_cuda_fft\noCudaFFT\fftw\Lib C:\Users\Phuong\Documents\GitHub\LT_cuda_fft\noCudaFFT\fftw\Lib\libfftw3-3.lib /LIBPATH:"C:\Program Files (x86)\Windows Kits\10\Lib\10.0.17134.0\ucrt\x64" C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\lib\Qt5Core.lib   
 QMAKE         = C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\bin\qmake.exe
 DEL_FILE      = del
 CHK_DIR_EXISTS= if not exist

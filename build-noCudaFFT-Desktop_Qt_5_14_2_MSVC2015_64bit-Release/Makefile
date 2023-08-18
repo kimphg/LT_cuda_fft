@@ -250,6 +250,7 @@ Makefile: ..\noCudaFFT\noCudaFFT.pro C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\w
 		C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\features\qt_config.prf \
 		C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\win32-msvc\qmake.conf \
 		C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\features\spec_post.prf \
+		.qmake.stash \
 		C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\features\exclusive_builds.prf \
 		C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\common\msvc-version.conf \
 		C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\features\toolchain.prf \
@@ -274,7 +275,6 @@ Makefile: ..\noCudaFFT\noCudaFFT.pro C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\w
 		C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\features\lex.prf \
 		..\noCudaFFT\noCudaFFT.pro \
 		C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\lib\Qt5Core.prl \
-		.qmake.stash \
 		C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\features\build_pass.prf \
 		C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\lib\Qt5Cored.prl
 	$(QMAKE) -o Makefile ..\noCudaFFT\noCudaFFT.pro -spec win32-msvc "CONFIG+=qtquickcompiler"
@@ -444,6 +444,7 @@ C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\features\qt_functions.prf:
 C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\features\qt_config.prf:
 C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\win32-msvc\qmake.conf:
 C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\features\spec_post.prf:
+.qmake.stash:
 C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\features\exclusive_builds.prf:
 C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\common\msvc-version.conf:
 C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\features\toolchain.prf:
@@ -468,7 +469,6 @@ C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\features\yacc.prf:
 C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\features\lex.prf:
 ..\noCudaFFT\noCudaFFT.pro:
 C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\lib\Qt5Core.prl:
-.qmake.stash:
 C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\mkspecs\features\build_pass.prf:
 C:\Qt\Qt5.14.2\5.14.2\msvc2015_64\lib\Qt5Cored.prl:
 qmake: FORCE
