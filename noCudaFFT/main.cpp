@@ -392,14 +392,15 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
 
     if (pkt_header->len<1000)return;
     int port = ((*(pkt_data + 36) << 8) | (*(pkt_data + 37)));
+    if(port!=31000)return;
 //    if(port!=1989)sendto(mSocket, (char*)pkt_data, pkt_header->len, 0, (struct sockaddr *) &si_cabin, sizeof(si_cabin));
-    if (
-            ((*(pkt_data + 6)) == 0) &&
-            ((*(pkt_data + 7)) == 0x12) &&
-            ((*(pkt_data + 8)) == 0x34)
+//    if (
+//            ((*(pkt_data + 6)) == 0) &&
+//            ((*(pkt_data + 7)) == 0x12) &&
+//            ((*(pkt_data + 8)) == 0x34)
 
-            )
-    {
+//            )
+//    {
         /*
         + 0: 1024 byte đầu kênh I
         + 1: 1024 byte sau kênh I
@@ -414,7 +415,7 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
         u_char* data = (u_char*)pkt_data + UDP_HEADER_LEN;
         ProcessFrame(data, pkt_header->len);
 
-    }
+//    }
 
 
 
@@ -585,7 +586,7 @@ void ProcessFrame(unsigned char*data, int len)
     int newfftID = data[22];
     if (fftID != newfftID)
     {
-        if (newfftID > 8 || newfftID < 0)
+        if (newfftID > 10 || newfftID < 0)
         {
             printf("\nWrong fftID");
             return;
@@ -594,7 +595,7 @@ void ProcessFrame(unsigned char*data, int len)
         mFFTDegree = fftID ;
         mFFTSize = pow(2.0, mFFTDegree);
         printf("FFT size = %d",mFFTSize);
-        if (mFFTSize > 512 || mFFTSize < 4)mFFTSize = 32;
+        if (mFFTSize > 512 || mFFTSize < 4)mFFTSize = 512;
         isPaused = true;
 
         Sleep(200);
