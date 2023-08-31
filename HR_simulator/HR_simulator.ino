@@ -49,6 +49,16 @@ void send_Data() {
   outBuffer2[12]=byte12;
   outBuffer3[12]=byte12;
   outBuffer4[12]=byte12;
+    for(int i=34;i<1058;i++){
+  outBuffer1[i]=rand();
+  outBuffer2[i]=rand();
+  outBuffer3[i]=rand();
+  outBuffer4[i]=rand();
+  outBuffer1[i]>>=4;
+  outBuffer2[i]>>=4;
+  outBuffer3[i]>>=4;
+  outBuffer4[i]>>=4;
+  }
 Udp.beginPacket(destinationIP, destinationPort);
 Udp.write(outBuffer1, ARRAY_SIZE);
 Udp.endPacket();
@@ -68,7 +78,6 @@ void setup() {
   header[22]=5;
   
   memcpy(outBuffer1,header,34);outBuffer1[0]=0;
-  
   memcpy(outBuffer2,header,34);outBuffer2[0]=1;
   memcpy(outBuffer3,header,34);outBuffer3[0]=2;
   memcpy(outBuffer4,header,34);outBuffer4[0]=3;
@@ -91,6 +100,6 @@ void setup() {
 void loop() {
 
 send_Data();
-//  delayMicroseconds(100);
+  delayMicroseconds(100);
 
 }
