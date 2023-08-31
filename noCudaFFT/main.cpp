@@ -16,6 +16,7 @@
 #define BANG_KHONG 0
 int mFFTSize = 8;
 int mFFTDegree = 5;
+int packetCount=0;
 #define FFT_STEP (mFFTSize / 4)
 
 #define MAX_IREC 2400
@@ -25,6 +26,7 @@ int mFFTDegree = 5;
 #define FRAME_HEADER_SIZE 34
 fftwf_plan plan_forward ;
 bool isPaused = false;
+int changeCount = 0;
 //#include "cuda_runtime.h"
 //#include "device_launch_parameters.h"
 //#include <cufft.h>
@@ -74,7 +76,7 @@ struct sockaddr_in si_capin;
 void socketInit()
 {
     printf("socketInit\n");
-    _flushall();
+
     WSADATA wsa;
     //Initialise winsock
     printf("\nInitialising Winsock...");
@@ -120,8 +122,8 @@ void socketInit()
     si_cabin.sin_family = AF_INET;
     si_cabin.sin_port = htons(1989);//port "127.0.0.1"
     si_cabin.sin_addr.S_un.S_addr = inet_addr("192.168.1.40");
-//    int ret = bind(mSocket, (struct sockaddr *)&si_capin, sizeof(struct sockaddr));
-
+    //    int ret = bind(mSocket, (struct sockaddr *)&si_capin, sizeof(struct sockaddr));
+    printf("\nSocket initialized");_flushall();
 }
 void socketDelete()
 {
@@ -134,8 +136,8 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam);
 DWORD WINAPI ProcessCommandBuffer(LPVOID lpParam);
 void StartProcessing()
 {
-//    printf("StartProcessing\n");
-    _flushall();
+
+
     CreateThread(
                 NULL,                   // default security attributes
                 0,                      // use default stack size
@@ -143,14 +145,14 @@ void StartProcessing()
                 NULL,          // argument to thread function
                 0,                      // use default creation flags
                 NULL);   // returns the thread identifier
-//    CreateThread(
-//                NULL,                   // default security attributes
-//                0,                      // use default stack size
-//                ProcessCommandBuffer,       // thread function name
-//                NULL,          // argument to thread function
-//                0,                      // use default creation flags
-//                NULL);   // returns the thread identifier
-
+    //    CreateThread(
+    //                NULL,                   // default security attributes
+    //                0,                      // use default stack size
+    //                ProcessCommandBuffer,       // thread function name
+    //                NULL,          // argument to thread function
+    //                0,                      // use default creation flags
+    //                NULL);   // returns the thread identifier
+    printf("StartProcessing\n");_flushall();
 }
 FILE* pFile;
 unsigned char buff[3000];
@@ -201,9 +203,11 @@ int main(int argc, char** argv)
 
     /* start the capture */
     fftwf_init_threads();
-    fftwf_plan_with_nthreads(8);
+    fftwf_plan_with_nthreads(6);
     socketInit();
     StartProcessing();
+
+    printf("\nThreads started");
     pcapRun();
     getchar();
     _flushall();
@@ -218,13 +222,15 @@ void pcapRun()
 {
     pcap_if_t *alldevs;
     pcap_if_t *d;
+    pcap_if_t *adapter;
     pcap_t		*adhandle;
     char errbuf[PCAP_ERRBUF_SIZE];
-    //
+    printf("\npcap_findalldevs_ex\n");
     /* Retrieve the device list on the local machine */
     if (pcap_findalldevs_ex((char*)PCAP_SRC_IF_STRING, NULL, &alldevs, errbuf) == -1)
     {
         //isRunning = false;
+
         printf(errbuf); return;
     }
     //isRunning = true;
@@ -238,14 +244,19 @@ void pcapRun()
         else
             printf(" (No description available)");
         std::string des(d->description);
-        if (des.find(std::string("Ethernet")) != std::string::npos)
+        if (des.find(std::string("GbE")) != std::string::npos)
         {
-            printf(" (Start listening)");
-            break;
+            printf(" (Found GbE)");
+            adapter=d;
         }
-    }
-    d = alldevs;
-    if ((adhandle = pcap_open(d->name,          // name of the device
+        if (des.find(std::string("Controller")) != std::string::npos)
+        {
+            printf(" (Found Controller)");
+            adapter=d;
+        }
+    }_flushall();
+    //    d = alldevs;
+    if ((adhandle = pcap_open(adapter->name,          // name of the device
                               65536,            // portion of the packet to capture
                               // 65536 guarantees that the whole packet will be captured on all the link layers
                               PCAP_OPENFLAG_PROMISCUOUS,    // promiscuous mode
@@ -256,10 +267,12 @@ void pcapRun()
     {
         /* Free the device list */
         pcap_freealldevs(alldevs);
+        _flushall();
         return;
     }
-    printf("\nnocudaFFT listening on %s...\n", d->description);
+    printf("\nFFT listening on %s...\n", adapter->description);
     printf("FFT size = %d",mFFTSize);
+
     Sleep(1000);
     printf("\nAuto close in 3s");
     Sleep(1000);
@@ -267,7 +280,8 @@ void pcapRun()
     Sleep(1000);
     printf("\nAuto close in 1s");
     Sleep(1000);
-//    HideConsole();
+    _flushall();
+    //    HideConsole();
     pcap_loop(adhandle, 0, packet_handler, NULL);
 }
 u_char dataOut[FRAME_LEN];
@@ -298,8 +312,10 @@ int datatestA[MAX_IREC];*/
 
 DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
 {
+
     while (true)
     {
+
         while(rawSignalFFT==NULL);
         while (iProcessing != iReady)
         {
@@ -328,40 +344,46 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
                     if (ia < 0)ia += MAX_IREC;
                 }
             }
-            fftwf_execute(plan_forward);
-            //generate output data frame
-            memcpy(outputFrame, dataBuff[iProcessing].header, FRAME_HEADER_SIZE);
-            int fftSkip = BANG_KHONG*mFFTSize / 16;
-            for (int i = 0; i < dataLen; i++)
-            {
-                double maxAmp = 0;
-                int indexMaxFFT = 0;
-                for (int j = fftSkip; j < mFFTSize - fftSkip; j++)
+            if(packetCount>100){
+                fftwf_execute(plan_forward);
+
+                //generate output data frame
+                memcpy(outputFrame, dataBuff[iProcessing].header, FRAME_HEADER_SIZE);
+                int fftSkip = BANG_KHONG*mFFTSize / 16;
+                for (int i = 0; i < dataLen; i++)
                 {
-                    int pt = i*mFFTSize + j;
-                    float ax = rawSignalFFTout[pt][0];
-                    float ay = rawSignalFFTout[pt][1];
-                    double ampl = (ax*ax) + (ay*ay);
-                    if (ampl>maxAmp)
+                    double maxAmp = 0;
+                    int indexMaxFFT = 0;
+                    for (int j = fftSkip; j < mFFTSize - fftSkip; j++)
                     {
-                        maxAmp = ampl;
-                        indexMaxFFT = j;
+                        int pt = i*mFFTSize + j;
+                        float ax = rawSignalFFTout[pt][0];
+                        float ay = rawSignalFFTout[pt][1];
+                        double ampl = (ax*ax) + (ay*ay);
+                        if (ampl>maxAmp)
+                        {
+                            maxAmp = ampl;
+                            indexMaxFFT = j;
+                        }
                     }
+                    double res = sqrt(maxAmp / float(mFFTSize));
+                    if (res > 255)res = 255;
+                    outputFrame[i + FRAME_HEADER_SIZE] = u_char(res);// u_char(sqrt(float(maxAmp)) / float(FFT_SIZE_MAX));
+                    outputFrame[i + FRAME_LEN + FRAME_HEADER_SIZE] = u_char(indexMaxFFT*16.0 / (mFFTSize));
                 }
-                double res = sqrt(maxAmp / float(mFFTSize));
-                if (res > 255)res = 255;
-                outputFrame[i + FRAME_HEADER_SIZE] = u_char(res);// u_char(sqrt(float(maxAmp)) / float(FFT_SIZE_MAX));
-                outputFrame[i + FRAME_LEN + FRAME_HEADER_SIZE] = u_char(indexMaxFFT*16.0 / (mFFTSize));
+                for (int i = dataLen; i < FRAME_LEN; i++)
+                {
+                    outputFrame[i + FRAME_HEADER_SIZE] = 0;
+                    outputFrame[i + FRAME_LEN + FRAME_HEADER_SIZE] = 0;
+                }
+                sendto(mSocket, (char*)outputFrame, OUTPUT_FRAME_SIZE, 0, (struct sockaddr *) &si_peter, sizeof(si_peter));
             }
-            for (int i = dataLen; i < FRAME_LEN; i++)
-            {
-                outputFrame[i + FRAME_HEADER_SIZE] = 0;
-                outputFrame[i + FRAME_LEN + FRAME_HEADER_SIZE] = 0;
-            }
-            sendto(mSocket, (char*)outputFrame, OUTPUT_FRAME_SIZE, 0, (struct sockaddr *) &si_peter, sizeof(si_peter));
-            //jump to next period
             iProcessing++;
             if (iProcessing >= MAX_IREC)iProcessing = 0;
+
+            packetCount++;
+            if(packetCount<100)printf(".");
+            //jump to next period
         }
 
 
@@ -392,16 +414,16 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
 
     if (pkt_header->len<1000)return;
     int port = ((*(pkt_data + 36) << 8) | (*(pkt_data + 37)));
-    if(port!=31000)return;
-//    if(port!=1989)sendto(mSocket, (char*)pkt_data, pkt_header->len, 0, (struct sockaddr *) &si_cabin, sizeof(si_cabin));
-//    if (
-//            ((*(pkt_data + 6)) == 0) &&
-//            ((*(pkt_data + 7)) == 0x12) &&
-//            ((*(pkt_data + 8)) == 0x34)
+    //    if(port!=31000)return;
+    //    if(port!=1989)sendto(mSocket, (char*)pkt_data, pkt_header->len, 0, (struct sockaddr *) &si_cabin, sizeof(si_cabin));
+    //    if (
+    //            ((*(pkt_data + 6)) == 0) &&
+    //            ((*(pkt_data + 7)) == 0x12) &&
+    //            ((*(pkt_data + 8)) == 0x34)
 
-//            )
-//    {
-        /*
+    //            )
+    //    {
+    /*
         + 0: 1024 byte đầu kênh I
         + 1: 1024 byte sau kênh I
         + 2: 1024 byte đầu kênh Q
@@ -412,10 +434,10 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
         + 7: 1024 byte sau kênh Q tín hiệu xung đơn
 
         */
-        u_char* data = (u_char*)pkt_data + UDP_HEADER_LEN;
-        ProcessFrame(data, pkt_header->len);
+    u_char* data = (u_char*)pkt_data + UDP_HEADER_LEN;
+    ProcessFrame(data, pkt_header->len);
 
-//    }
+    //    }
 
 
 
@@ -566,41 +588,47 @@ Id gói                                            |
 */
 void fftInit()
 {
-    if (rawSignalFFT)
-        delete[] rawSignalFFT;
+
+    if (changeCount>0){
+        fftwf_free(rawSignalFFT);
+        fftwf_free(rawSignalFFTout);
+        fftwf_destroy_plan(plan_forward);
+        Sleep(500);
+    }
+    changeCount++;
     rawSignalFFT = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * mFFTSize * FRAME_LEN);//new fftwf_complex[mFFTSize*FRAME_LEN];
-    if (rawSignalFFTout)
-        delete[] rawSignalFFTout;
+
     rawSignalFFTout = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * mFFTSize * FRAME_LEN);//new fftwf_complex[mFFTSize*FRAME_LEN];
     plan_forward = fftwf_plan_many_dft(1,&mFFTSize,FRAME_LEN,rawSignalFFT,\
-                                                  &mFFTSize,1,mFFTSize,rawSignalFFTout,&mFFTSize,1,mFFTSize,FFTW_FORWARD,FFTW_ESTIMATE);
-
+                                       &mFFTSize,1,mFFTSize,rawSignalFFTout,&mFFTSize,1,mFFTSize,FFTW_FORWARD,FFTW_ESTIMATE);
+    packetCount=0;
 }
 static int fftID = -1;
 
 void ProcessFrame(unsigned char*data, int len)
 {
-//    printf("frame input\n");
+    //    printf("frame input\n");
     int iNext = iReady + 1;
     if (iNext >= MAX_IREC)iNext = 0;
     int newfftID = data[22];
     if (fftID != newfftID)
     {
+
         if (newfftID > 10 || newfftID < 0)
         {
-            printf("\nWrong fftID");
+            printf("\nWrong fftID:%d",newfftID);
             return;
         }
         fftID = newfftID;
         mFFTDegree = fftID ;
         mFFTSize = pow(2.0, mFFTDegree);
-        printf("FFT size = %d",mFFTSize);
-        if (mFFTSize > 512 || mFFTSize < 4)mFFTSize = 512;
-        isPaused = true;
 
+        if (mFFTSize > 512 || mFFTSize < 4)mFFTSize = 4;
+        isPaused = true;
+        printf("FFT size = %d",mFFTSize);
         Sleep(200);
         fftInit();
-        Sleep(50);
+        Sleep(200);
         isPaused = false;
     }
     memcpy(dataBuff[iNext].header, data, FRAME_HEADER_SIZE);
