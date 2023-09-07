@@ -3,7 +3,7 @@ QT -= gui
 
 CONFIG += c++11
 
-TARGET = fft2000
+TARGET = noCudaFFT
 CONFIG += console
 CONFIG -= app_bundle
 
@@ -16,13 +16,9 @@ SOURCES += main.cpp
 # deprecated API in order to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
 INCLUDEPATH += $$PWD/WpdPack/Include/
-INCLUDEPATH += $$PWD/fftw/include/
 #LIBPATH += $$PWD/WpdPack/Include/
 DEPENDPATH += $$PWD/WpdPack/Lib/x64/
 LIBS += "-L$$PWD/WpdPack/Lib/x64" -lpacket -lwpcap
-
-DEPENDPATH += $$PWD/fftw/lib/
-LIBS += "-L$$PWD/fftw/Lib/" -llibfftw3-3 -llibfftw3f-3 #-llibfftw3l-3
 # You can also make your code fail to compile if you use deprecated APIs.
 # In order to do so, uncomment the following line.
 # You can also select to disable deprecated APIs only up to a certain version of Qt.

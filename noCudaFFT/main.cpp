@@ -1,4 +1,8 @@
-
+//setx -m OPENCV_DIR D:\OpenCV\OpenCV331\opencv\build
+//setx path "%path%;D:\OpenCV\OpenCV331\opencv\build\bin\Release\"
+//#include "device_launch_parameters.h"
+//#include <opencv2/opencv.hpp>
+//#include <stdafx.h>
 #include <string>
 #include <stdio.h>
 #include <winsock2.h>
@@ -6,7 +10,6 @@
 #include <conio.h>
 #include <tchar.h>
 #include <math.h>
-#include "fftw3.h"
 #define HAVE_REMOTE// for pcap
 #include "pcap.h"
 #define HR2D_PK//
@@ -23,7 +26,7 @@ int mFFTDegree = 5;
 #pragma comment (lib, "Ws2_32.lib")
 //file mapping
 #define FRAME_HEADER_SIZE 34
-fftwf_plan plan_forward ;
+
 bool isPaused = false;
 //#include "cuda_runtime.h"
 //#include "device_launch_parameters.h"
@@ -34,12 +37,78 @@ bool isPaused = false;
 double rawSignalx[MAX_IREC][FRAME_LEN];
 double rawSignaly[MAX_IREC][FRAME_LEN];
 //double ramImage[FRAME_LEN];
-fftwf_complex *rawSignalFFT = 0;
-fftwf_complex *rawSignalFFTout = 0;
+double *rawSignalFFTx = NULL;
+double *rawSignalFFTy = NULL;
 using namespace std;
 inline void FFT(double *x, double *y)//short int dir,long m,
 {
+    int dir = 1;
+    int m = mFFTDegree;
+    int n = mFFTSize;
+    long i, i1, j, k, i2, l, l1, l2;
+    double c1, c2, tx, ty, t1, t2, u1, u2, z;
 
+    /* Calculate the number of points */
+    //n = 1;
+    //for (i=0;i<m;i++)
+    //    n *= 2;
+
+    /* Do the bit reversal */
+    i2 = n >> 1;
+    j = 0;
+    for (i = 0; i<n - 1; i++) {
+        if (i < j) {
+            tx = x[i];
+            ty = y[i];
+            x[i] = x[j];
+            y[i] = y[j];
+            x[j] = tx;
+            y[j] = ty;
+        }
+        k = i2;
+        while (k <= j) {
+            j -= k;
+            k >>= 1;
+        }
+        j += k;
+    }
+
+    /* Compute the FFT */
+    c1 = -1.0;
+    c2 = 0.0;
+    l2 = 1;
+    for (l = 0; l<m; l++) {
+        l1 = l2;
+        l2 <<= 1;
+        u1 = 1.0;
+        u2 = 0.0;
+        for (j = 0; j<l1; j++) {
+            for (i = j; i<n; i += l2) {
+                i1 = i + l1;
+                t1 = u1 * x[i1] - u2 * y[i1];
+                t2 = u1 * y[i1] + u2 * x[i1];
+                x[i1] = x[i] - t1;
+                y[i1] = y[i] - t2;
+                x[i] += t1;
+                y[i] += t2;
+            }
+            z = u1 * c1 - u2 * c2;
+            u2 = u1 * c2 + u2 * c1;
+            u1 = z;
+        }
+        c2 = sqrt((1.0 - c1) / 2.0);
+        if (dir == 1)
+            c2 = -c2;
+        c1 = sqrt((1.0 + c1) / 2.0);
+    }
+
+    /* Scaling for forward transform */
+    if (dir == 1) {
+        for (i = 0; i<n; i++) {
+            x[i] /= n;
+            y[i] /= n;
+        }
+    }
 }
 //__global__ void complexMulKernel(cufftComplex *res, const cufftComplex *v1, const cufftComplex *v2)
 //{
@@ -62,19 +131,16 @@ struct DataFrame// buffer for data frame
 
 u_char outputFrame[OUTPUT_FRAME_SIZE];
 
-int iProcessing = 0, iReady = 0;
+int iProcessing = 0, iReady = 50;
 void packet_handler(u_char *param, const struct pcap_pkthdr *header, const u_char *pkt_data);
 void pcapRun();
 
 
 int mSocket;
 struct sockaddr_in si_peter;
-struct sockaddr_in si_cabin;
 struct sockaddr_in si_capin;
 void socketInit()
 {
-    printf("socketInit\n");
-    _flushall();
     WSADATA wsa;
     //Initialise winsock
     printf("\nInitialising Winsock...");
@@ -109,18 +175,6 @@ void socketInit()
     si_peter.sin_port = htons(31000);//port "127.0.0.1"
     printf("Output port 31000");
     si_peter.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
-    if (ret == -1)
-    {
-        printf("Port busy");
-        Sleep(3000);
-        exit(EXIT_FAILURE);
-    }
-    //forwarding socket
-    memset((char *)&si_cabin, 0, sizeof(si_cabin));
-    si_cabin.sin_family = AF_INET;
-    si_cabin.sin_port = htons(1989);//port "127.0.0.1"
-    si_cabin.sin_addr.S_un.S_addr = inet_addr("192.168.1.40");
-//    int ret = bind(mSocket, (struct sockaddr *)&si_capin, sizeof(struct sockaddr));
 
 }
 void socketDelete()
@@ -134,8 +188,6 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam);
 DWORD WINAPI ProcessCommandBuffer(LPVOID lpParam);
 void StartProcessing()
 {
-//    printf("StartProcessing\n");
-    _flushall();
     CreateThread(
                 NULL,                   // default security attributes
                 0,                      // use default stack size
@@ -143,13 +195,13 @@ void StartProcessing()
                 NULL,          // argument to thread function
                 0,                      // use default creation flags
                 NULL);   // returns the thread identifier
-//    CreateThread(
-//                NULL,                   // default security attributes
-//                0,                      // use default stack size
-//                ProcessCommandBuffer,       // thread function name
-//                NULL,          // argument to thread function
-//                0,                      // use default creation flags
-//                NULL);   // returns the thread identifier
+    CreateThread(
+                NULL,                   // default security attributes
+                0,                      // use default stack size
+                ProcessCommandBuffer,       // thread function name
+                NULL,          // argument to thread function
+                0,                      // use default creation flags
+                NULL);   // returns the thread identifier
 
 }
 FILE* pFile;
@@ -200,13 +252,13 @@ int main(int argc, char** argv)
 {
 
     /* start the capture */
-    fftwf_init_threads();
-    fftwf_plan_with_nthreads(8);
+    //	mFFT = new coreFFT(FRAME_LEN, mFFTSize);
     socketInit();
     StartProcessing();
     pcapRun();
+    printf("\nNo interface available");
     getchar();
-    _flushall();
+
     return 0;
 }
 //precompiling code for FFT
@@ -267,7 +319,7 @@ void pcapRun()
     Sleep(1000);
     printf("\nAuto close in 1s");
     Sleep(1000);
-//    HideConsole();
+    HideConsole();
     pcap_loop(adhandle, 0, packet_handler, NULL);
 }
 u_char dataOut[FRAME_LEN];
@@ -298,17 +350,23 @@ int datatestA[MAX_IREC];*/
 
 DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
 {
+
+
     while (true)
     {
-        while(rawSignalFFT==NULL);
+        Sleep(1);
         while (iProcessing != iReady)
         {
+
 
             int dataLen = dataBuff[iProcessing].dataLen;
             for (int ir = 0; ir < dataLen; ir++)
             {
+
+                //ramSignalNen[iProcessing][ir].x = sqrt(double(dataBuff[iProcessing].dataPM_I[ir] * dataBuff[iProcessing].dataPM_I[ir] + dataBuff[iProcessing].dataPM_Q[ir] * dataBuff[iProcessing].dataPM_Q[ir]));//int(dataBuff[iProcessing].dataPM_I[ir]);
                 rawSignalx[iProcessing][ir] = (dataBuff[iProcessing].dataPM_I[ir]);
                 rawSignaly[iProcessing][ir] = (dataBuff[iProcessing].dataPM_Q[ir]);
+                //ramSignalNen[iProcessing][ir].y = 0;
             }
             if (!dataBuff[iProcessing].isToFFT || isPaused)
             {
@@ -322,13 +380,20 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
                 int ia = iProcessing;
                 for (int i = 0; i < mFFTSize; i++)
                 {
-                    rawSignalFFT[ir*mFFTSize + i][0] = rawSignalx[ia][ir];
-                    rawSignalFFT[ir*mFFTSize + i][1] = rawSignaly[ia][ir];
+                    rawSignalFFTx[ir*mFFTSize + i] = rawSignalx[ia][ir];
+                    rawSignalFFTy[ir*mFFTSize + i] = rawSignaly[ia][ir];
                     ia--;
                     if (ia < 0)ia += MAX_IREC;
                 }
+                FFT(&rawSignalFFTx[ir*mFFTSize], &rawSignalFFTy[ir*mFFTSize]);
+                //                printf("iProcessing = %d \n", iProcessing);
             }
-            fftwf_execute(plan_forward);
+            // perform fft
+
+            //if (mFFT->isActive)mFFT->exeFFTTL((cufftComplex*)ramSignalTL);
+            //dataBuff[iProcessing].header[32] = gyroValue >> 8;
+            //dataBuff[iProcessing].header[33] = gyroValue;
+
             //generate output data frame
             memcpy(outputFrame, dataBuff[iProcessing].header, FRAME_HEADER_SIZE);
             int fftSkip = BANG_KHONG*mFFTSize / 16;
@@ -336,19 +401,19 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
             {
                 double maxAmp = 0;
                 int indexMaxFFT = 0;
+                //for (int j = 0; j<FFT_SIZE_MAX; j++)
+
                 for (int j = fftSkip; j < mFFTSize - fftSkip; j++)
                 {
                     int pt = i*mFFTSize + j;
-                    float ax = rawSignalFFTout[pt][0];
-                    float ay = rawSignalFFTout[pt][1];
-                    double ampl = (ax*ax) + (ay*ay);
+                    double ampl = (rawSignalFFTx[pt] * rawSignalFFTx[pt]) + (rawSignalFFTy[pt] * rawSignalFFTy[pt]);
                     if (ampl>maxAmp)
                     {
                         maxAmp = ampl;
                         indexMaxFFT = j;
                     }
                 }
-                double res = sqrt(maxAmp / float(mFFTSize));
+                double res = sqrt(maxAmp / double(mFFTSize));
                 if (res > 255)res = 255;
                 outputFrame[i + FRAME_HEADER_SIZE] = u_char(res);// u_char(sqrt(float(maxAmp)) / float(FFT_SIZE_MAX));
                 outputFrame[i + FRAME_LEN + FRAME_HEADER_SIZE] = u_char(indexMaxFFT*16.0 / (mFFTSize));
@@ -391,16 +456,15 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
     //    strftime( timestr, sizeof timestr, "%H:%M:%S", &ltime);
 
     if (pkt_header->len<1000)return;
-    int port = ((*(pkt_data + 36) << 8) | (*(pkt_data + 37)));
-    if(port!=31000)return;
-//    if(port!=1989)sendto(mSocket, (char*)pkt_data, pkt_header->len, 0, (struct sockaddr *) &si_cabin, sizeof(si_cabin));
-//    if (
-//            ((*(pkt_data + 6)) == 0) &&
-//            ((*(pkt_data + 7)) == 0x12) &&
-//            ((*(pkt_data + 8)) == 0x34)
+    //int port = ((*(pkt_data + 36) << 8) | (*(pkt_data + 37)));
 
-//            )
-//    {
+    if (
+            ((*(pkt_data + 6)) == 0) &&
+            ((*(pkt_data + 7)) == 0x12) &&
+            ((*(pkt_data + 8)) == 0x34)
+
+            )
+    {
         /*
         + 0: 1024 byte đầu kênh I
         + 1: 1024 byte sau kênh I
@@ -415,7 +479,7 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
         u_char* data = (u_char*)pkt_data + UDP_HEADER_LEN;
         ProcessFrame(data, pkt_header->len);
 
-//    }
+    }
 
 
 
@@ -566,27 +630,24 @@ Id gói                                            |
 */
 void fftInit()
 {
-    if (rawSignalFFT)
-        delete[] rawSignalFFT;
-    rawSignalFFT = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * mFFTSize * FRAME_LEN);//new fftwf_complex[mFFTSize*FRAME_LEN];
-    if (rawSignalFFTout)
-        delete[] rawSignalFFTout;
-    rawSignalFFTout = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * mFFTSize * FRAME_LEN);//new fftwf_complex[mFFTSize*FRAME_LEN];
-    plan_forward = fftwf_plan_many_dft(1,&mFFTSize,FRAME_LEN,rawSignalFFT,\
-                                                  &mFFTSize,1,mFFTSize,rawSignalFFTout,&mFFTSize,1,mFFTSize,FFTW_FORWARD,FFTW_ESTIMATE);
+    if (rawSignalFFTx)
+        delete[] rawSignalFFTx;
+    if (rawSignalFFTy)
+        delete[] rawSignalFFTy;
+    rawSignalFFTx = new double[mFFTSize*FRAME_LEN];
+    rawSignalFFTy = new double[mFFTSize*FRAME_LEN];
 
 }
 static int fftID = -1;
 
 void ProcessFrame(unsigned char*data, int len)
 {
-//    printf("frame input\n");
     int iNext = iReady + 1;
     if (iNext >= MAX_IREC)iNext = 0;
     int newfftID = data[22];
     if (fftID != newfftID)
     {
-        if (newfftID > 10 || newfftID < 0)
+        if (newfftID > 8 || newfftID < 2)
         {
             printf("\nWrong fftID");
             return;
@@ -594,12 +655,18 @@ void ProcessFrame(unsigned char*data, int len)
         fftID = newfftID;
         mFFTDegree = fftID ;
         mFFTSize = pow(2.0, mFFTDegree);
-        printf("FFT size = %d",mFFTSize);
-        if (mFFTSize > 512 || mFFTSize < 4)mFFTSize = 512;
+        if (mFFTSize > 512 || mFFTSize < 4)mFFTSize = 32;
         isPaused = true;
 
         Sleep(200);
         fftInit();
+        /*iProcessing = iReady;
+        if (mFFT)
+        {
+        delete mFFT;
+        }
+        mFFT = new coreFFT(FRAME_LEN, mFFTSize);
+        */
         Sleep(50);
         isPaused = false;
     }
