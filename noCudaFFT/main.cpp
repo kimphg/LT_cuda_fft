@@ -26,7 +26,7 @@ int mFFTDegree = 5;
 #pragma comment (lib, "Ws2_32.lib")
 //file mapping
 #define FRAME_HEADER_SIZE 34
-
+#define MAX_FFT_SIZE 256
 bool isPaused = false;
 //#include "cuda_runtime.h"
 //#include "device_launch_parameters.h"
@@ -40,8 +40,19 @@ double rawSignaly[MAX_IREC][FRAME_LEN];
 double *rawSignalFFTx = NULL;
 double *rawSignalFFTy = NULL;
 using namespace std;
+void fftInit()
+{
+    if (rawSignalFFTx)
+        delete[] rawSignalFFTx;
+    if (rawSignalFFTy)
+        delete[] rawSignalFFTy;
+    rawSignalFFTx = new double[MAX_FFT_SIZE*FRAME_LEN];
+    rawSignalFFTy = new double[MAX_FFT_SIZE*FRAME_LEN];
+
+}
 inline void FFT(double *x, double *y)//short int dir,long m,
 {
+    return;
     int dir = 1;
     int m = mFFTDegree;
     int n = mFFTSize;
@@ -284,7 +295,8 @@ int main(int argc, char** argv)
 
     /* start the capture */
     //	mFFT = new coreFFT(FRAME_LEN, mFFTSize);
-    InitRecord();
+    fftInit();
+//    InitRecord();
     socketInit();
     StartProcessing();
     pcapRun();
@@ -349,13 +361,13 @@ void pcapRun()
     }
     printf("\nnocudaFFT listening on %s...\n", d->description);
     printf("FFT size = %d",mFFTSize);
-    Sleep(1000);
-    printf("\nAuto close in 3s");
-    Sleep(1000);
-    printf("\nAuto close in 2s");
-    Sleep(1000);
-    printf("\nAuto close in 1s");
-    Sleep(1000);
+//    Sleep(1000);
+//    printf("\nAuto close in 3s");
+//    Sleep(1000);
+//    printf("\nAuto close in 2s");
+//    Sleep(1000);
+//    printf("\nAuto close in 1s");
+//    Sleep(1000);
     //    HideConsole();
     pcap_loop(adhandle, 0, packet_handler, NULL);
 }
@@ -412,6 +424,7 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
                 if (iProcessing >= MAX_IREC)iProcessing = 0;
                 continue;
             }
+
             for (int ir = 0; ir < dataLen; ir++)
             {
                 int ia = iProcessing;
@@ -515,6 +528,7 @@ void packet_handler(u_char *param, const struct pcap_pkthdr *pkt_header, const u
         */
         u_char* data = (u_char*)pkt_data + UDP_HEADER_LEN;
         ProcessFrame(data, pkt_header->len);
+
 
     }
 
@@ -665,27 +679,18 @@ Id gói                                            |
 |       |           |   6,7: iq                                           |
 |       |           |   cho tín hiệu xung đơn, mỗi kênh 1024 byte
 */
-void fftInit()
-{
-    if (rawSignalFFTx)
-        delete[] rawSignalFFTx;
-    if (rawSignalFFTy)
-        delete[] rawSignalFFTy;
-    rawSignalFFTx = new double[mFFTSize*FRAME_LEN];
-    rawSignalFFTy = new double[mFFTSize*FRAME_LEN];
 
-}
 static int fftID = -1;
 
 void ProcessFrame(unsigned char*data, int len)
 {
-    RecordData(data, len);
+//    RecordData(data, len);
     int iNext = iReady + 1;
     if (iNext >= MAX_IREC)iNext = 0;
     int newfftID = data[22];
     if (fftID != newfftID)
     {
-        if (newfftID > 8 || newfftID < 2)
+        if (newfftID > 8 || newfftID < 0)
         {
             printf("\nWrong fftID");
             return;
@@ -695,11 +700,13 @@ void ProcessFrame(unsigned char*data, int len)
         printf("\nfftID=%d",fftID);
         mFFTDegree = fftID ;
         mFFTSize = pow(2.0, mFFTDegree);
-        if (mFFTSize > 512 || mFFTSize < 4)mFFTSize = 32;
+
+        if (mFFTSize > 512 || mFFTSize < 1)mFFTSize = 32;
         isPaused = true;
-        printf("\nmFFTSize=%d",mFFTSize);
         Sleep(200);
-        fftInit();
+        printf("\nmFFTSize=%d",mFFTSize);
+
+
         /*iProcessing = iReady;
         if (mFFT)
         {
@@ -767,7 +774,9 @@ void ProcessFrame(unsigned char*data, int len)
     if (isLastFrame)
     {
         iReady++;
-        dataBuff[iNext].isToFFT = ((iNext%FFT_STEP) == 0);
+        int idStep = FFT_STEP;
+        if(idStep<1)idStep=1;
+        dataBuff[iNext].isToFFT = ((iNext%idStep) == 0);
         if (iReady >= MAX_IREC)iReady = 0;
     }
     return;
