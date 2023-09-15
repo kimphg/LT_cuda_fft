@@ -103,12 +103,12 @@ inline void FFT(double *x, double *y)//short int dir,long m,
     }
 
     /* Scaling for forward transform */
-    if (dir == 1) {
-        for (i = 0; i<n; i++) {
-            x[i] /= n;
-            y[i] /= n;
-        }
-    }
+    //    if (dir == 1) {
+    //        for (i = 0; i<n; i++) {
+    //            x[i] /= n;
+    //            y[i] /= n;
+    //        }
+    //    }
 }
 //__global__ void complexMulKernel(cufftComplex *res, const cufftComplex *v1, const cufftComplex *v2)
 //{
@@ -239,6 +239,37 @@ void ReplayData(const char* fileName)
     printf("\ntotal data sent:%d", dataSize);
 }
 */
+
+void InitRecord()
+{
+    //char* mfileName = "C:\\Users\\Phuong-T1600\\Documents\\GitHub\\Peter\\VS\\x64\\Release\\raw_data_record_1538999224.dat";
+    pFile = fopen("cuda_record", "wb");
+    if (!pFile)
+    {
+        printf("\nfopen failed");
+        return;
+    }
+}
+int rec_count=0;
+void RecordData(unsigned char* data,int len)
+{
+    if(pFile)
+    {
+        if(rec_count<20000)
+        {
+            fwrite(data,1,len,pFile);
+            rec_count++;
+        }
+        else
+        {
+            fclose(pFile);
+            printf("recording completed");
+            pFile=0;
+            return;
+        }
+
+    }
+}
 void HideConsole()
 {
     ::ShowWindow(::GetConsoleWindow(), SW_HIDE);
@@ -253,6 +284,7 @@ int main(int argc, char** argv)
 
     /* start the capture */
     //	mFFT = new coreFFT(FRAME_LEN, mFFTSize);
+    InitRecord();
     socketInit();
     StartProcessing();
     pcapRun();
@@ -295,8 +327,13 @@ void pcapRun()
             printf(" (Start listening)");
             break;
         }
+        if (des.find(std::string("GbE")) != std::string::npos)
+        {
+            printf(" (Start listening)");
+            break;
+        }
     }
-    d = alldevs;
+    //    d = alldevs;
     if ((adhandle = pcap_open(d->name,          // name of the device
                               65536,            // portion of the packet to capture
                               // 65536 guarantees that the whole packet will be captured on all the link layers
@@ -319,7 +356,7 @@ void pcapRun()
     Sleep(1000);
     printf("\nAuto close in 1s");
     Sleep(1000);
-    HideConsole();
+    //    HideConsole();
     pcap_loop(adhandle, 0, packet_handler, NULL);
 }
 u_char dataOut[FRAME_LEN];
@@ -642,6 +679,7 @@ static int fftID = -1;
 
 void ProcessFrame(unsigned char*data, int len)
 {
+    RecordData(data, len);
     int iNext = iReady + 1;
     if (iNext >= MAX_IREC)iNext = 0;
     int newfftID = data[22];
@@ -652,12 +690,14 @@ void ProcessFrame(unsigned char*data, int len)
             printf("\nWrong fftID");
             return;
         }
+
         fftID = newfftID;
+        printf("\nfftID=%d",fftID);
         mFFTDegree = fftID ;
         mFFTSize = pow(2.0, mFFTDegree);
         if (mFFTSize > 512 || mFFTSize < 4)mFFTSize = 32;
         isPaused = true;
-
+        printf("\nmFFTSize=%d",mFFTSize);
         Sleep(200);
         fftInit();
         /*iProcessing = iReady;
