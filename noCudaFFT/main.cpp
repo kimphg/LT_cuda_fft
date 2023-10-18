@@ -36,10 +36,12 @@ bool isPaused = false;
 //double *ramSignalTL;
 double rawSignalx[MAX_IREC][FRAME_LEN];
 double rawSignaly[MAX_IREC][FRAME_LEN];
+//double rawSignala[MAX_IREC][FRAME_LEN];
 //double ramImage[FRAME_LEN];
 double *rawSignalFFTx = NULL;
 double *rawSignalFFTy = NULL;
 using namespace std;
+
 void fftInit()
 {
     if (rawSignalFFTx)
@@ -296,7 +298,7 @@ int main(int argc, char** argv)
     /* start the capture */
     //	mFFT = new coreFFT(FRAME_LEN, mFFTSize);
     fftInit();
-//    InitRecord();
+    //    InitRecord();
     socketInit();
     StartProcessing();
     pcapRun();
@@ -361,13 +363,13 @@ void pcapRun()
     }
     printf("\nnocudaFFT listening on %s...\n", d->description);
     printf("FFT size = %d",mFFTSize);
-//    Sleep(1000);
-//    printf("\nAuto close in 3s");
-//    Sleep(1000);
-//    printf("\nAuto close in 2s");
-//    Sleep(1000);
-//    printf("\nAuto close in 1s");
-//    Sleep(1000);
+    //    Sleep(1000);
+    //    printf("\nAuto close in 3s");
+    //    Sleep(1000);
+    //    printf("\nAuto close in 2s");
+    //    Sleep(1000);
+    //    printf("\nAuto close in 1s");
+    //    Sleep(1000);
     //    HideConsole();
     pcap_loop(adhandle, 0, packet_handler, NULL);
 }
@@ -400,22 +402,31 @@ int datatestA[MAX_IREC];*/
 DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
 {
 
-
+    bool scalarMode = false;
     while (true)
     {
         Sleep(1);
         while (iProcessing != iReady)
         {
-
-
+            bool scalar = 0;//dataBuff[iProcessing].header[15];
+            if(scalar!=scalarMode)
+            {
+                scalarMode=scalar;
+                printf("\nscalar mode:%d",dataBuff[iProcessing].header[15]);
+            }
             int dataLen = dataBuff[iProcessing].dataLen;
             for (int ir = 0; ir < dataLen; ir++)
             {
+                char x = (dataBuff[iProcessing].dataPM_I[ir]);
+                rawSignalx[iProcessing][ir] = x;
+                char y = (dataBuff[iProcessing].dataPM_Q[ir]);
+                rawSignaly[iProcessing][ir] = y;
+//                printf("\n data:x:%d y:%d",x,y);
+                if(scalarMode){
+                    rawSignaly[iProcessing][ir] = sqrt(x*x+y*y);
+                    rawSignalx[iProcessing][ir] = 0;
+                }
 
-                //ramSignalNen[iProcessing][ir].x = sqrt(double(dataBuff[iProcessing].dataPM_I[ir] * dataBuff[iProcessing].dataPM_I[ir] + dataBuff[iProcessing].dataPM_Q[ir] * dataBuff[iProcessing].dataPM_Q[ir]));//int(dataBuff[iProcessing].dataPM_I[ir]);
-                rawSignalx[iProcessing][ir] = (dataBuff[iProcessing].dataPM_I[ir]);
-                rawSignaly[iProcessing][ir] = (dataBuff[iProcessing].dataPM_Q[ir]);
-                //ramSignalNen[iProcessing][ir].y = 0;
             }
             if (!dataBuff[iProcessing].isToFFT || isPaused)
             {
@@ -463,7 +474,7 @@ DWORD WINAPI ProcessDataBuffer(LPVOID lpParam)
                         indexMaxFFT = j;
                     }
                 }
-                double res = sqrt(maxAmp / double(mFFTSize));
+                double res = sqrt(maxAmp / sqrt(double(mFFTSize)));
                 if (res > 255)res = 255;
                 outputFrame[i + FRAME_HEADER_SIZE] = u_char(res);// u_char(sqrt(float(maxAmp)) / float(FFT_SIZE_MAX));
                 outputFrame[i + FRAME_LEN + FRAME_HEADER_SIZE] = u_char(indexMaxFFT*16.0 / (mFFTSize));
@@ -684,7 +695,7 @@ static int fftID = -1;
 
 void ProcessFrame(unsigned char*data, int len)
 {
-//    RecordData(data, len);
+    //    RecordData(data, len);
     int iNext = iReady + 1;
     if (iNext >= MAX_IREC)iNext = 0;
     int newfftID = data[22];
@@ -741,13 +752,14 @@ void ProcessFrame(unsigned char*data, int len)
         memcpy(dataBuff[iNext].dataPM_Q + 1024, data + FRAME_HEADER_SIZE, 1024);
         dataBuff[iNext].dataLen = FRAME_LEN;
         isLastFrame = true;
+//        printf("\ndata:%d",data[11]);
 
     }
     else if (data[0] == 4) //4: máy hỏi
     {
 
         sendto(mSocket, (char*)data, len, 0, (struct sockaddr *) &si_peter, sizeof(si_peter));
-
+//        printf("\nmay hoi:%d",data[11]);
         //isLastFrame = true;
 
     }
