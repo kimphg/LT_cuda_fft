@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.11.1, 2023-10-13T09:51:56. -->
+<!-- Written by QtCreator 4.11.1, 2023-10-19T17:11:18. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -347,7 +347,7 @@
     <value type="bool" key="RunConfiguration.UseQmlDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
     <value type="QString" key="RunConfiguration.WorkingDirectory"></value>
-    <value type="QString" key="RunConfiguration.WorkingDirectory.default">C:/Users/Phuong/Documents/GitHub/LT_cuda_fft/noCudaFFT</value>
+    <value type="QString" key="RunConfiguration.WorkingDirectory.default">C:/Users/Phuong/Documents/GitHub/LT_cuda_fft/noCudaFFT/bin/</value>
    </valuemap>
    <value type="int" key="ProjectExplorer.Target.RunConfigurationCount">1</value>
   </valuemap>

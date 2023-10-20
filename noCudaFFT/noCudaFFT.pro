@@ -3,7 +3,7 @@ QT -= gui
 
 CONFIG += c++11
 
-TARGET = noCudaFFT
+TARGET = singleCPUFFT
 CONFIG += console
 CONFIG -= app_bundle
 
@@ -25,3 +25,7 @@ LIBS += "-L$$PWD/WpdPack/Lib/x64" -lpacket -lwpcap
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 INCLUDEPATH += "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17134.0/ucrt"
 LIBS += -L"C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17134.0/ucrt/x64"
+win32 {
+DESTDIR = $$PWD/bin/
+QMAKE_POST_LINK =  "C:/Qt/Qt5.14.2/5.14.2/msvc2017_64/bin/windeployqt.exe" $$shell_path($$DESTDIR/$${TARGET}.exe)
+}
